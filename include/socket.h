@@ -125,6 +125,11 @@ namespace daw {
 
 			int receive( daw::span<char> data, int flags );
 
+			template<typename Buffer>
+			int receive( Buffer & buff, int flags ) {
+				return receive( daw::make_span( buff, 0, buff.size( ) ), flags );
+			}
+
 			void close( );
 		};
 	} // namespace net

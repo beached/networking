@@ -39,14 +39,13 @@ int main( int, char ** ) {
 	}
 	while( true ) {
 		try {
-			auto client = srv_socket.accept( );
+			auto const client = srv_socket.accept( );
 			client->send( daw::string_view{""}, 0 );
-			daw::static_array_t<char, 128> buff_raw{0};
-			auto buff = daw::make_span( buff_raw );
+			daw::static_array_t<char, 128> buff{0};
 			int how_many = 0;
 			while( ( how_many = client->receive( buff, 0 ) ) > 0 ) {
-				client->send( buff.subset( 0, how_many ), 0 );
-				buff_raw.fill( 0 );
+				client->send( daw::make_span( buff, 0, how_many ), 0 );
+				buff.fill( 0 );
 			}
 		} catch( std::exception &ex ) {
 			std::cerr << ex.what( ) << '\n';
