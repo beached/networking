@@ -60,10 +60,10 @@ namespace daw {
 			freeaddrinfo( m_srvinfo );
 		}
 
-		void tcp_socket::bind( uint16_t port ) {
+		void tcp_socket::bind( daw::string_view address, uint16_t port ) {
 			daw::exception::daw_throw_on_true( option_bound( ) && option_connected( ), "Already bound" );
 
-			set_info( port );
+			set_info( address, port );
 
 			for( auto result = m_srvinfo; result != nullptr; result = m_srvinfo->ai_next ) {
 				if( !option_socket_created( ) ) {
@@ -148,10 +148,6 @@ namespace daw {
 			auto const status = ::close( m_sock );
 			daw::exception::daw_throw_on_true( status < 0, std::string{strerror( errno )} );
 			option_closed( true );
-		}
-
-		void tcp_socket::set_info( uint16_t port ) {
-			set_info( daw::string_view{}, port );
 		}
 
 		void tcp_socket::set_info( daw::string_view address, uint16_t port ) {

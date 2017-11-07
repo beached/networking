@@ -31,7 +31,7 @@
 int main( int, char ** ) {
 	daw::net::tcp_socket srv_socket{};
 	try {
-		srv_socket.bind( 12345 );
+		srv_socket.bind( "0.0.0.0", 12345 );
 		srv_socket.listen( 5 );
 	} catch( std::exception &ex ) {
 		std::cerr << ex.what( ) << '\n';

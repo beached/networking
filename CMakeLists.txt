@@ -59,11 +59,10 @@ add_definitions( -DBOOST_TEST_DYN_LINK -DBOOST_ALL_NO_LIB -DBOOST_ALL_DYN_LINK )
 add_custom_target( check COMMAND ${CMAKE_CTEST_COMMAND} )
 
 add_library( networking_lib ${HEADER_FILES} ${SOURCE_FILES} )
-target_link_libraries( networking_lib ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 add_dependencies( networking_lib header_libraries_prj )
 
 add_executable( echo_test_bin EXCLUDE_FROM_ALL ${HEADER_FILES} ${TEST_FOLDER}/echo.cpp )
-target_link_libraries( echo_test_bin networking_lib ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
+target_link_libraries( echo_test_bin networking_lib )
 add_dependencies( echo_test_bin header_libraries_prj )
 add_test( echo_test echo_test_bin )
 add_dependencies( check echo_test_bin )

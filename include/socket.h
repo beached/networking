@@ -45,8 +45,12 @@ namespace daw {
 			enum class option_vals { socket_created = 0, bound = 1, connected = 2, closed = 3 };
 			std::bitset<4> m_options;
 
-			void set_info( uint16_t port );
 			void set_info( daw::string_view address, uint16_t port );
+			
+			inline void set_info( uint16_t port ) {
+				set_info( daw::string_view{}, port );
+			}
+
 			void open_socket( addrinfo *info );
 
 			inline bool option_socket_created( ) const {
@@ -97,7 +101,11 @@ namespace daw {
 			tcp_socket( tcp_socket const &socket ) = delete;
 			tcp_socket &operator=( tcp_socket const &socket ) = delete;
 
-			void bind( uint16_t port );
+			void bind( daw::string_view address, uint16_t port );
+			
+			inline void bind( uint16_t port ) {
+				bind( daw::string_view{}, port );
+			}
 
 			void connect( daw::string_view address, uint16_t port );
 
