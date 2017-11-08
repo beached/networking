@@ -43,8 +43,8 @@ int main( int, char ** ) {
 			client->send( daw::string_view{""}, 0 );
 			daw::static_array_t<char, 128> buff{0};
 
-			for( auto received = client->receive( buff, 0 ); !received.empty( ); received = client->receive( buff, 0 ) ) {
-				client->send( received, 0 );
+			for( auto received = client->receive( buff ); !received.empty( ); received = client->receive( buff ) ) {
+				client->send( received );
 				buff.fill( 0 );
 			}
 		} catch( std::exception &ex ) {

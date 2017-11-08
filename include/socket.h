@@ -42,11 +42,11 @@ namespace daw {
 			addrinfo m_info;
 			addrinfo *m_srvinfo;
 			int m_socket;
-			enum class option_vals { socket_created = 0, bound = 1, connected = 2, closed = 3 };
+			enum class socket_options { socket_created = 0, bound = 1, connected = 2, closed = 3 };
 			std::bitset<4> m_options;
 
 			void set_info( daw::string_view address, uint16_t port );
-			
+
 			inline void set_info( uint16_t port ) {
 				set_info( daw::string_view{}, port );
 			}
@@ -54,35 +54,35 @@ namespace daw {
 			void open_socket( addrinfo *info );
 
 			inline bool option_socket_created( ) const {
-				return m_options[static_cast<size_t>( option_vals::socket_created )];
+				return m_options[static_cast<size_t>( socket_options::socket_created )];
 			}
 
 			inline void option_socket_created( bool val ) {
-				m_options[static_cast<size_t>( option_vals::socket_created )] = val;
+				m_options[static_cast<size_t>( socket_options::socket_created )] = val;
 			}
 
 			inline bool option_bound( ) const {
-				return m_options[static_cast<size_t>( option_vals::bound )];
+				return m_options[static_cast<size_t>( socket_options::bound )];
 			}
 
 			inline void option_bound( bool val ) {
-				m_options[static_cast<size_t>( option_vals::bound )] = val;
+				m_options[static_cast<size_t>( socket_options::bound )] = val;
 			}
 
 			inline bool option_connected( ) const {
-				return m_options[static_cast<size_t>( option_vals::connected )];
+				return m_options[static_cast<size_t>( socket_options::connected )];
 			}
 
 			inline void option_connected( bool val ) {
-				m_options[static_cast<size_t>( option_vals::connected )] = val;
+				m_options[static_cast<size_t>( socket_options::connected )] = val;
 			}
 
 			inline bool option_closed( ) const {
-				return m_options[static_cast<size_t>( option_vals::closed )];
+				return m_options[static_cast<size_t>( socket_options::closed )];
 			}
 
 			inline void option_closed( bool val ) {
-				m_options[static_cast<size_t>( option_vals::closed )] = val;
+				m_options[static_cast<size_t>( socket_options::closed )] = val;
 			}
 
 		public:
@@ -102,7 +102,7 @@ namespace daw {
 			tcp_socket &operator=( tcp_socket const &socket ) = delete;
 
 			void bind( daw::string_view address, uint16_t port );
-			
+
 			inline void bind( uint16_t port ) {
 				bind( daw::string_view{}, port );
 			}
@@ -115,19 +115,40 @@ namespace daw {
 
 			void send( daw::array_view<char> data, int flags );
 
+			inline void send( daw::array_view<char> data ) {
+				send( data, 0 );
+			}
+
 			inline void send( daw::span<char> const data, int flags ) {
 				send( daw::array_view<char>{data.cbegin( ), data.size( )}, flags );
 			}
 
-			void send( daw::string_view data, int flags ) {
+			inline void send( daw::span<char> const data ) {
+				send( daw::array_view<char>{data.cbegin( ), data.size( )}, 0 );
+			}
+
+			inline void send( daw::string_view data, int flags ) {
 				send( daw::array_view<char>{data.cbegin( ), data.size( )}, flags );
+			}
+
+			inline void send( daw::string_view data ) {
+				send( daw::array_view<char>{data.cbegin( ), data.size( )}, 0 );
 			}
 
 			daw::span<char> receive( daw::span<char> data, int flags );
 
+			inline daw::span<char> receive( daw::span<char> data ) {
+				return receive( data, 0 );
+			}
+
 			template<typename Buffer>
-			daw::span<char> receive( Buffer &buff, int flags ) {
+			inline daw::span<char> receive( Buffer &buff, int flags ) {
 				return receive( daw::make_span( buff, 0, buff.size( ) ), flags );
+			}
+
+			template<typename Buffer>
+			inline daw::span<char> receive( Buffer &buff ) {
+				return receive( daw::make_span( buff, 0, buff.size( ) ), 0 );
 			}
 
 			void close( );
@@ -137,7 +158,7 @@ namespace daw {
 			}
 		};
 
-		void set_non_blocking( tcp_socket const & socket );
+		void set_non_blocking( tcp_socket const &socket );
 	} // namespace net
 } // namespace daw
 
