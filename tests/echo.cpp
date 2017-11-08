@@ -42,9 +42,9 @@ int main( int, char ** ) {
 			auto const client = srv_socket.accept( );
 			client->send( daw::string_view{""}, 0 );
 			daw::static_array_t<char, 128> buff{0};
-			int how_many = 0;
-			while( ( how_many = client->receive( buff, 0 ) ) > 0 ) {
-				client->send( daw::make_span( buff, 0, how_many ), 0 );
+
+			for( auto received = client->receive( buff, 0 ); !received.empty( ); received = client->receive( buff, 0 ) ) {
+				client->send( received, 0 );
 				buff.fill( 0 );
 			}
 		} catch( std::exception &ex ) {

@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include <errno.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <string>
 #include <sys/socket.h>
@@ -40,22 +41,26 @@ namespace daw {
 				return;
 			}
 
-			m_sock = socket( m_info.ai_family, m_info.ai_socktype, 0 );
-			daw::exception::daw_throw_on_true( m_sock < 0, std::string{strerror( errno )} );
+			m_socket = socket( m_info.ai_family, m_info.ai_socktype, 0 );
+			daw::exception::daw_throw_on_true( m_socket < 0, std::string{strerror( errno )} );
 
 			option_socket_created( true );
 		}
 
 		tcp_socket::tcp_socket( int socket, addrinfo info, bool bound, bool connected )
-		  : m_info{}, m_srvinfo{new addrinfo{std::move( info )}}, m_sock{socket}, m_options{} {
+		  : m_info{}, m_srvinfo{new addrinfo{std::move( info )}}, m_socket{socket}, m_options{} {
 
 			option_bound( bound );
 			option_connected( connected );
 		}
 
 		tcp_socket::~tcp_socket( ) noexcept {
-			if( !option_closed( ) ) {
-				close( );
+			try {
+				if( !option_closed( ) ) {
+					close( );
+				}
+			} catch( ... ) {
+				// TODO: determine best course of action if ignoring is not it
 			}
 			freeaddrinfo( m_srvinfo );
 		}
@@ -71,7 +76,7 @@ namespace daw {
 						open_socket( result );
 					} catch( ... ) { continue; }
 				}
-				if(::bind( m_sock, result->ai_addr, result->ai_addrlen ) == 0 ) {
+				if(::bind( m_socket, result->ai_addr, result->ai_addrlen ) == 0 ) {
 					option_bound( true );
 					return;
 				}
@@ -90,7 +95,7 @@ namespace daw {
 						open_socket( result );
 					} catch( ... ) { continue; }
 				}
-				if(::connect( m_sock, result->ai_addr, result->ai_addrlen ) == 0 ) {
+				if(::connect( m_socket, result->ai_addr, result->ai_addrlen ) == 0 ) {
 					option_connected( true );
 					return;
 				}
@@ -99,7 +104,7 @@ namespace daw {
 		}
 
 		void tcp_socket::listen( int max_queue ) {
-			auto const status = ::listen( m_sock, max_queue );
+			auto const status = ::listen( m_socket, max_queue );
 			daw::exception::daw_throw_on_true( status != 0, std::string{strerror( errno )} );
 		}
 
@@ -114,7 +119,7 @@ namespace daw {
 
 			socklen_t address_size = sizeof( sockaddr_storage );
 
-			auto new_sock = ::accept( m_sock, reinterpret_cast<sockaddr *>( &address.s ), &address_size );
+			auto new_sock = ::accept( m_socket, reinterpret_cast<sockaddr *>( &address.s ), &address_size );
 			daw::exception::daw_throw_on_true( new_sock < 0, std::string{strerror( errno )} );
 
 			addrinfo info{};
@@ -132,20 +137,20 @@ namespace daw {
 
 		void tcp_socket::send( daw::array_view<char> data, int flags ) {
 			while( !data.empty( ) ) {
-				auto const status = ::send( m_sock, data.data( ), data.size( ), flags );
+				auto const status = ::send( m_socket, data.data( ), data.size( ), flags );
 				daw::exception::daw_throw_on_true( status < 0, std::string{strerror( errno )} );
 				data.remove_prefix( static_cast<size_t>( status ) );
 			}
 		}
 
-		int tcp_socket::receive( daw::span<char> data, int flags ) {
-			auto const status = ::recv( m_sock, data.data( ), data.size( ), flags );
+		daw::span<char> tcp_socket::receive( daw::span<char> data, int flags ) {
+			auto const status = ::recv( m_socket, data.data( ), data.size( ), flags );
 			daw::exception::daw_throw_on_true( status < 0, std::string{strerror( errno )} );
-			return status;
+			return data.subset( 0, status );
 		}
 
 		void tcp_socket::close( ) {
-			auto const status = ::close( m_sock );
+			auto const status = ::close( m_socket );
 			daw::exception::daw_throw_on_true( status < 0, std::string{strerror( errno )} );
 			option_closed( true );
 		}
@@ -158,9 +163,16 @@ namespace daw {
 		}
 
 		void tcp_socket::open_socket( addrinfo *info ) {
-			m_sock = socket( info->ai_family, info->ai_socktype, info->ai_protocol );
-			daw::exception::daw_throw_on_true( m_sock < 0, std::string{strerror( errno )} );
+			m_socket = socket( info->ai_family, info->ai_socktype, info->ai_protocol );
+			daw::exception::daw_throw_on_true( m_socket < 0, std::string{strerror( errno )} );
 		}
 
+		void set_non_blocking( tcp_socket const &socket ) {
+			auto flags = fcntl( socket.raw_socket( ), F_GETFL, 0 );
+			daw::exception::daw_throw_on_true( flags < 0, std::string{strerror( errno )} );
+			flags |= O_NONBLOCK;
+			auto const status = fcntl( socket.raw_socket( ), F_SETFL, flags );
+			daw::exception::daw_throw_on_true( status < 0, std::string{strerror( errno )} );
+		}
 	} // namespace net
 } // namespace daw

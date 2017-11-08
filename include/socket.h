@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #pragma once
+
 #include <memory>
 #include <netdb.h>
 
@@ -34,14 +35,13 @@
 #include <daw/daw_array_view.h>
 #include <daw/daw_span.h>
 #include <daw/daw_string_view.h>
-
 namespace daw {
 	namespace net {
 
 		class tcp_socket {
 			addrinfo m_info;
 			addrinfo *m_srvinfo;
-			int m_sock;
+			int m_socket;
 			enum class option_vals { socket_created = 0, bound = 1, connected = 2, closed = 3 };
 			std::bitset<4> m_options;
 
@@ -86,7 +86,7 @@ namespace daw {
 			}
 
 		public:
-			constexpr tcp_socket( ) noexcept : m_info{}, m_srvinfo{nullptr}, m_sock{-1}, m_options{} {
+			constexpr tcp_socket( ) noexcept : m_info{}, m_srvinfo{nullptr}, m_socket{-1}, m_options{} {
 				m_info.ai_family = AF_UNSPEC;
 				m_info.ai_socktype = SOCK_STREAM;
 			}
@@ -123,15 +123,21 @@ namespace daw {
 				send( daw::array_view<char>{data.cbegin( ), data.size( )}, flags );
 			}
 
-			int receive( daw::span<char> data, int flags );
+			daw::span<char> receive( daw::span<char> data, int flags );
 
 			template<typename Buffer>
-			int receive( Buffer & buff, int flags ) {
+			daw::span<char> receive( Buffer &buff, int flags ) {
 				return receive( daw::make_span( buff, 0, buff.size( ) ), flags );
 			}
 
 			void close( );
+
+			constexpr int raw_socket( ) const noexcept {
+				return m_socket;
+			}
 		};
+
+		void set_non_blocking( tcp_socket const & socket );
 	} // namespace net
 } // namespace daw
 
