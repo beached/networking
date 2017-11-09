@@ -46,12 +46,11 @@ namespace daw {
 			std::bitset<4> m_options;
 
 			void set_info( daw::string_view address, uint16_t port );
+			void open_socket( addrinfo *info );
 
 			inline void set_info( uint16_t port ) {
 				set_info( daw::string_view{}, port );
 			}
-
-			void open_socket( addrinfo *info );
 
 			inline bool option_socket_created( ) const {
 				return m_options[static_cast<size_t>( socket_options::socket_created )];
@@ -91,29 +90,26 @@ namespace daw {
 				m_info.ai_socktype = SOCK_STREAM;
 			}
 
-			tcp_socket( int socket, addrinfo info, bool bound, bool connected );
-			tcp_socket( int family, int flags );
-			~tcp_socket( ) noexcept;
-
-			tcp_socket( tcp_socket &&socket ) noexcept = default;
-			tcp_socket &operator=( tcp_socket &&socket ) noexcept = default;
-
 			tcp_socket( tcp_socket const &socket ) = delete;
 			tcp_socket &operator=( tcp_socket const &socket ) = delete;
 
+			tcp_socket( int socket, addrinfo info, bool bound, bool connected );
+			tcp_socket( int family, int flags );
+			~tcp_socket( ) noexcept;
+			tcp_socket( tcp_socket &&socket ) noexcept = default;
+			tcp_socket &operator=( tcp_socket &&socket ) noexcept = default;
+
 			void bind( daw::string_view address, uint16_t port );
+			void connect( daw::string_view address, uint16_t port );
+			void listen( int max_queue );
+			std::shared_ptr<tcp_socket> accept( );
+			void send( daw::array_view<char> data, int flags );
+			daw::span<char> receive( daw::span<char> data, int flags );
+			void close( );
 
 			inline void bind( uint16_t port ) {
 				bind( daw::string_view{}, port );
 			}
-
-			void connect( daw::string_view address, uint16_t port );
-
-			void listen( int max_queue );
-
-			std::shared_ptr<tcp_socket> accept( );
-
-			void send( daw::array_view<char> data, int flags );
 
 			inline void send( daw::array_view<char> data ) {
 				send( data, 0 );
@@ -135,8 +131,6 @@ namespace daw {
 				send( daw::array_view<char>{data.cbegin( ), data.size( )}, 0 );
 			}
 
-			daw::span<char> receive( daw::span<char> data, int flags );
-
 			inline daw::span<char> receive( daw::span<char> data ) {
 				return receive( data, 0 );
 			}
@@ -150,8 +144,6 @@ namespace daw {
 			inline daw::span<char> receive( Buffer &buff ) {
 				return receive( daw::make_span( buff, 0, buff.size( ) ), 0 );
 			}
-
-			void close( );
 
 			constexpr int raw_socket( ) const noexcept {
 				return m_socket;

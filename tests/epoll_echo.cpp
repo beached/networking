@@ -25,6 +25,7 @@
 #include <iostream>
 
 #include <daw/daw_static_array.h>
+#include <daw/daw_bits.h>
 
 #include "socket.h"
 
@@ -32,25 +33,35 @@ int main( int, char ** ) {
 	daw::net::tcp_socket srv_socket{};
 	try {
 		srv_socket.bind( "0.0.0.0", 12345 );
+		set_non_blocking( srv_socket );
 		srv_socket.listen( 5 );
+
+		epoll_event_t event{srv_socket.socket( ), EPOLLIN | EPOLLET};
+		epoll efd{ };
+		efd.add( srv_socket.socket( ), event );
+		daw::static_array<epoll_event_t, 64> events{ };
+		while( true ) {
+			try {
+				for( auto const & cur_event: efd.wait( events ) ) {
+					if( daw::are_set( cur_event->events, EPOLLERR, EPOLLHUP ) || !are_set( cur_event->events, EPOLLIN ) ) {
+						// Error on this fd, socket is not read ready.
+						std::cerr << "epoll error\n";
+						continue;
+					}
+					
+					if( srv_socket.socket( ) == cur_event->data.fd ) {
+						// New incoming connection
+						
+					}
+				}
+			} catch( std::exception &ex ) {
+				std::cerr << ex.what( ) << '\n';
+				exit( EXIT_FAILURE );
+			}
+		}
 	} catch( std::exception &ex ) {
 		std::cerr << ex.what( ) << '\n';
 		exit( EXIT_FAILURE );
-	}
-	while( true ) {
-		try {
-			daw::static_array_t<char, 128> buff{0};
-
-			auto const client = srv_socket.accept( );
-			for( auto received = client->receive( buff ); !received.empty( ); received = client->receive( buff ) ) {
-				client->send( received );
-				received.fill( 0 );
-			}
-
-		} catch( std::exception &ex ) {
-			std::cerr << ex.what( ) << '\n';
-			exit( EXIT_FAILURE );
-		}
 	}
 	return EXIT_SUCCESS;
 }

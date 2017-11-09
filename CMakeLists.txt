@@ -47,6 +47,7 @@ link_directories( "${CMAKE_BINARY_DIR}/install/lib" )
 link_directories( ${Boost_LIBRARY_DIRS} )
 
 set( HEADER_FILES
+	${HEADER_FOLDER}/epoll.h
 	${HEADER_FOLDER}/socket.h
 )
 
@@ -66,6 +67,12 @@ target_link_libraries( echo_test_bin networking_lib )
 add_dependencies( echo_test_bin header_libraries_prj )
 add_test( echo_test echo_test_bin )
 add_dependencies( check echo_test_bin )
+
+add_executable( epoll_echo_test_bin EXCLUDE_FROM_ALL ${HEADER_FILES} ${TEST_FOLDER}/epoll_echo.cpp )
+target_link_libraries( epoll_echo_test_bin networking_lib )
+add_dependencies( epoll_echo_test_bin header_libraries_prj )
+add_test( epoll_echo_test epoll_echo_test_bin )
+add_dependencies( check epoll_echo_test_bin )
 
 install( TARGETS networking_lib DESTINATION lib )
 install( DIRECTORY ${HEADER_FOLDER}/ DESTINATION include/daw/net )
