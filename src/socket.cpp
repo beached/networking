@@ -62,7 +62,7 @@ namespace daw {
 			} catch( ... ) {
 				// TODO: determine best course of action if ignoring is not it
 			}
-			freeaddrinfo( m_srvinfo );
+			::freeaddrinfo( m_srvinfo );
 		}
 
 		void tcp_socket::bind( daw::string_view address, uint16_t port ) {
@@ -87,7 +87,7 @@ namespace daw {
 		void tcp_socket::connect( daw::string_view address, uint16_t port ) {
 			daw::exception::daw_throw_on_true( option_connected( ), "Already connected" );
 
-			set_info( address, htons( port ) );
+			set_info( address, ::htons( port ) );
 
 			for( auto result = m_srvinfo; result != nullptr; result = m_info.ai_next ) {
 				if( !option_socket_created( ) ) {
@@ -117,19 +117,24 @@ namespace daw {
 				sockaddr_storage s;
 			} address;
 
-			socklen_t address_size = sizeof( sockaddr_storage );
+			socklen_t address_size = sizeof( address );
 
 			auto new_sock = ::accept( m_socket, reinterpret_cast<sockaddr *>( &address.s ), &address_size );
 			daw::exception::daw_throw_on_true( new_sock < 0, std::string{strerror( errno )} );
 
 			addrinfo info{};
-
-			if( address.s.ss_family == AF_INET ) {
-				info.ai_family = AF_INET;
-				info.ai_addr = new sockaddr{address.addr};
-			} else {
-				info.ai_family = AF_INET6;
-				info.ai_addr = new sockaddr{address.addr};
+			switch( address.s.ss_family ) {
+				case AF_INET:
+					info.ai_family = AF_INET;
+				  info.ai_addr = new sockaddr{address.addr};
+					break;
+				case AF_INET6:
+					info.ai_family = AF_INET6;
+				  info.ai_addr = new sockaddr{address.addr};
+					break;
+				default:
+					std::cerr << "Unsupported Address Family\n";
+					std::terminate( );
 			}
 
 			return std::make_shared<tcp_socket>( new_sock, info, true, false );
@@ -156,14 +161,14 @@ namespace daw {
 		}
 
 		void tcp_socket::set_info( daw::string_view address, uint16_t port ) {
-			auto const status = getaddrinfo( address.c_str( ), std::to_string( port ).c_str( ), &m_info, &m_srvinfo );
+			auto const status = ::getaddrinfo( address.c_str( ), std::to_string( port ).c_str( ), &m_info, &m_srvinfo );
 			if( status != 0 ) {
 				daw::exception::daw_throw( "getaddrinfo returned non-zero" + std::string{gai_strerror( status )} );
 			}
 		}
 
 		void tcp_socket::open_socket( addrinfo *info ) {
-			m_socket = socket( info->ai_family, info->ai_socktype, info->ai_protocol );
+			m_socket = ::socket( info->ai_family, info->ai_socktype, info->ai_protocol );
 			daw::exception::daw_throw_on_true( m_socket < 0, std::string{strerror( errno )} );
 		}
 
@@ -171,7 +176,7 @@ namespace daw {
 			auto flags = fcntl( socket.raw_socket( ), F_GETFL, 0 );
 			daw::exception::daw_throw_on_true( flags < 0, std::string{strerror( errno )} );
 			flags |= O_NONBLOCK;
-			auto const status = fcntl( socket.raw_socket( ), F_SETFL, flags );
+			auto const status = ::fcntl( socket.raw_socket( ), F_SETFL, flags );
 			daw::exception::daw_throw_on_true( status < 0, std::string{strerror( errno )} );
 		}
 	} // namespace net

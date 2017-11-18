@@ -51,7 +51,9 @@ int main( int, char ** ) {
 					
 					if( srv_socket.socket( ) == cur_event->data.fd ) {
 						// New incoming connection
-						
+						while( true ) {
+							auto const client = srv_socket.accept( );
+						}
 					}
 				}
 			} catch( std::exception &ex ) {
